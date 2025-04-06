@@ -2,7 +2,7 @@ import type { Session } from 'next-auth';
 
 // Create a simplified DataStream type since we can't import it
 type DataStream = {
-  write: (chunk: string) => void;
+  write: (chunk: any) => void;
 };
 import { searchKnowledgeLocal } from './localSearch';
 import { KnowledgeReference } from '@/components/knowledge-references';

@@ -307,7 +307,7 @@ export async function POST(request: Request) {
             console.error('Detailed error in stream processing:', 
               error instanceof Error ? error.stack : String(error));
             // Write error to stream and close it
-            dataStream.write(JSON.stringify({ error: 'An error occurred during processing' }));
+            dataStream.write(`0:${JSON.stringify({ error: 'An error occurred during processing' })}\n`);
             
             // Safely try to signal end of stream
             const streamWriter = dataStream as { close?: () => void };

@@ -75,11 +75,13 @@ function PureMessages({
 }
 
 export const Messages = memo(PureMessages, (prevProps, nextProps) => {
+  // Always re-render when isLoading changes to ensure consistent styling
+  if (prevProps.isLoading !== nextProps.isLoading) return false;
+  
   // Fast path - return true to skip re-render when both artifacts are visible
   if (prevProps.isArtifactVisible && nextProps.isArtifactVisible) return true;
 
   // Quick equality checks before deep comparison
-  if (prevProps.isLoading !== nextProps.isLoading) return false;
   if (prevProps.isReadonly !== nextProps.isReadonly) return false;
   if (prevProps.chatId !== nextProps.chatId) return false;
   

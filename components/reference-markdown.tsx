@@ -18,6 +18,34 @@ interface ReferenceMarkdownProps {
 export function ReferenceMarkdown({ children, className, references = [], isRTL = false }: ReferenceMarkdownProps) {
   const { setActiveReference } = useReferencesSidebar();
 
+  // If there are no references, just render regular markdown with the same styling
+  if (!references || references.length === 0) {
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        className={cn('text-message-assistant max-w-none', className, isRTL ? 'rtl-text' : '')}
+        components={{
+          pre: ({ children }: any) => <>{children}</>,
+          code: ({ node, inline, className, children, ...props }: any) => {
+            const match = /language-(\w+)/.exec(className || '');
+            return (
+              <CodeBlock
+                node={node}
+                inline={inline}
+                className={className || ''}
+                {...props}
+              >
+                {children}
+              </CodeBlock>
+            );
+          },
+        }}
+      >
+        {children}
+      </ReactMarkdown>
+    );
+  }
+
   // Custom renderer component for matching citation patterns like [1], [2], etc.
   // Custom text component to properly handle all text nodes with citation patterns
   const TextWithCitations = ({ children }: { children: React.ReactNode }) => {

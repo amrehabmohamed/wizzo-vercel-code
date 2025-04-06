@@ -1,3 +1,28 @@
+/* Message transitions for smoother reference loading */
+.message-content-wrapper {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* For backward compatibility - will be deprecated */
+.text-message-assistant {
+  color: var(--message-assistant-text);
+}
+
+.bg-message-user {
+  background-color: var(--message-user-bg);
+  color: var(--message-user-text);
+}
+
+.dark .bg-message-user {
+  background-color: var(--message-user-bg-dark);
+  color: var(--message-user-text-dark);
+}
+
+.bg-message-assistant {
+  background-color: transparent;
+  color: var(--message-assistant-text);
+}
+
 /* Code block styling to prevent hydration errors */
 .codeblock-wrapper {
   display: block !important;
@@ -207,24 +232,74 @@ p > .codeblock-wrapper {
     @apply bg-background dark:bg-hunter_green-400 outline-none selection:bg-asparagus-200 dark:selection:bg-asparagus-700 !important;
 }
 
-/* Ensure consistent message colors across themes */
-.text-message-assistant {
-  color: #FEFAE1 !important;
+:root {
+  /* Message styling variables */
+  --message-assistant-text: #FEFAE1;
+  --message-user-bg: #FEFAE1;
+  --message-user-text: #2A5B34;
+  --message-user-bg-dark: #2A5B34;
+  --message-user-text-dark: #FEFAE1;
+  --thinking-bg: transparent;
+  --thinking-text: #FEFAE1;
 }
 
-.bg-message-user {
-  background-color: #FEFAE1 !important;
-  color: #2A5B34 !important;
+/* Message state styling - ensures consistent appearance during/after streaming */
+.message-container {
+  width: 100%;
+  max-width: 3xl;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
-.dark .bg-message-user {
-  background-color: #2A5B34 !important;
-  color: #FEFAE1 !important;
+.message-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
 }
 
-.bg-message-assistant {
-  background-color: transparent !important;
-  color: #FEFAE1 !important;
+.message-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-radius: 0.75rem;
+}
+
+.message-bubble[data-role="user"] {
+  background-color: var(--message-user-bg);
+  color: var(--message-user-text);
+  padding: 0.5rem 0.75rem;
+}
+
+.message-bubble[data-role="assistant"] {
+  background-color: transparent;
+  color: var(--message-assistant-text);
+}
+
+.dark .message-bubble[data-role="user"] {
+  background-color: var(--message-user-bg-dark);
+  color: var(--message-user-text-dark);
+}
+
+.streaming-message {
+  position: relative;
+}
+
+.streaming-message::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 4px;
+  height: 8px;
+  background-color: currentColor;
+  opacity: 0.7;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
 }
 
 /* RTL Support */

@@ -236,34 +236,34 @@ export function KnowledgeTable({ initialDocuments, chunks = {} }: KnowledgeTable
       
       <div className="mb-4 text-sm">
         <span className="dark:text-cornsilk-300 text-gray-700">Total Characters: </span>
-        <span className="font-semibold dark:text-cornsilk-100 text-gray-900">{getTotalCharCount()}</span>
+        <span className="font-semibold dark:text-cornsilk-500 text-gray-900">{getTotalCharCount()}</span>
       </div>
       
       <div className="border dark:border-hunter_green-500 border-gray-200 rounded-md overflow-hidden w-full">
         <Table>
-          <TableHeader className="dark:bg-hunter_green-600 bg-gray-100">
+          <TableHeader className="dark:bg-cornsilk-500 bg-gray-100">
             <TableRow>
-              <TableHead onClick={() => handleSort('type')} className="cursor-pointer dark:text-white">
+              <TableHead onClick={() => handleSort('type')} className="cursor-pointer dark:text-hunter_green-500">
                 <div className="flex items-center">
                   Type {getSortIcon('type')}
                 </div>
               </TableHead>
-              <TableHead onClick={() => handleSort('title')} className="cursor-pointer dark:text-white">
+              <TableHead onClick={() => handleSort('title')} className="cursor-pointer dark:text-hunter_green-500">
                 <div className="flex items-center">
                   Title {getSortIcon('title')}
                 </div>
               </TableHead>
-              <TableHead onClick={() => handleSort('status')} className="cursor-pointer dark:text-white">
+              <TableHead onClick={() => handleSort('status')} className="cursor-pointer dark:text-hunter_green-500">
                 <div className="flex items-center">
                   Status {getSortIcon('status')}
                 </div>
               </TableHead>
-              <TableHead onClick={() => handleSort('createdAt')} className="cursor-pointer dark:text-white">
+              <TableHead onClick={() => handleSort('createdAt')} className="cursor-pointer dark:text-hunter_green-500">
                 <div className="flex items-center">
                   Date Added {getSortIcon('createdAt')}
                 </div>
               </TableHead>
-              <TableHead onClick={() => handleSort('size')} className="cursor-pointer dark:text-white">
+              <TableHead onClick={() => handleSort('size')} className="cursor-pointer dark:text-hunter_green-500">
                 <div className="flex items-center">
                   Size {getSortIcon('size')}
                 </div>
@@ -273,7 +273,7 @@ export function KnowledgeTable({ initialDocuments, chunks = {} }: KnowledgeTable
           <TableBody>
             {documents.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 dark:text-white text-gray-700">
+                <TableCell colSpan={5} className="text-center py-8 dark:text-cornsilk-500 text-gray-700">
                   No documents in your knowledge base yet.
                 </TableCell>
               </TableRow>
@@ -281,7 +281,7 @@ export function KnowledgeTable({ initialDocuments, chunks = {} }: KnowledgeTable
               documents.map((doc) => (
                 <TableRow 
                   key={doc.id} 
-                  className="cursor-pointer hover:dark:bg-hunter_green-500/50 hover:bg-gray-100 dark:text-white"
+                  className="cursor-pointer hover:dark:bg-hunter_green-500/50 hover:bg-gray-100 dark:text-cornsilk-500"
                   onClick={() => router.push(`/knowledge/${doc.id}`)}
                 >
                   <TableCell>
@@ -307,7 +307,7 @@ export function KnowledgeTable({ initialDocuments, chunks = {} }: KnowledgeTable
             )}
           </TableBody>
           {documents.length > 0 && (
-            <TableCaption className="dark:bg-hunter_green-500/20 bg-gray-100 py-2 font-medium dark:text-white">
+            <TableCaption className="dark:bg-cornsilk-500/90 bg-gray-100 py-2 font-medium dark:text-hunter_green-500">
               {documents.length} document{documents.length !== 1 ? 's' : ''} in your knowledge base
             </TableCaption>
           )}

@@ -144,20 +144,13 @@ const PurePreviewMessage = ({
   return (
     <AnimatePresence>
       <motion.div
-        className="w-full mx-auto max-w-3xl px-4 group/message"
+        className={`message-container group/message ${isLoading ? 'streaming-message' : ''}`}
         initial={{ y: 5, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         data-role={message.role}
       >
         <div
-          className={cn(
-            'flex gap-4 w-full group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl',
-            {
-              'w-full': mode === 'edit',
-              'group-data-[role=user]/message:w-fit': mode !== 'edit',
-              'rtl-bubble': isRTL,
-            },
-          )}
+          className={`flex gap-4 w-full ${message.role === 'user' ? 'group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl' : ''}`}
         >
           {message.role === 'assistant' && (
             <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border bg-background">
@@ -206,26 +199,17 @@ const PurePreviewMessage = ({
                 )}
 
                 <div
-                  className={cn('flex flex-col gap-4', {
-                    'bg-message-user px-3 py-2 rounded-xl text-[#2A5B34]':
-                      message.role === 'user',
-                    'text-message-assistant':
-                      message.role === 'assistant',
-                    'rtl-text': isRTL
-                  })}
+                  className={`message-bubble ${isRTL ? 'rtl-text' : ''}`}
+                  data-role={message.role}
                 >
-                  {message.role === 'assistant' && message.knowledgeReferences && message.knowledgeReferences.length > 0 ? (
-                    <div className={cn('text-message-assistant', { 'rtl-text': isRTL })}>
-                      <ReferenceMarkdown references={message.knowledgeReferences} isRTL={isRTL}>
-                        {message.content as string}
-                      </ReferenceMarkdown>
-                      {/* Debug message removed */}
-                    </div>
-                  ) : (
-                    <div className={cn('text-message-assistant', { 'rtl-text': isRTL })}>
-                      <Markdown isRTL={isRTL}>{message.content as string}</Markdown>
-                    </div>
-                  )}
+                  <div className={`message-content-wrapper ${isRTL ? 'rtl-text' : ''}`}>
+                    <ReferenceMarkdown 
+                      references={message.knowledgeReferences || []} 
+                      isRTL={isRTL}
+                    >
+                      {message.content as string}
+                    </ReferenceMarkdown>
+                  </div>
                 </div>
               </div>
             )}
@@ -359,27 +343,26 @@ export const ThinkingMessage = () => {
 
   return (
     <motion.div
-      className="w-full mx-auto max-w-3xl px-4 group/message "
+      className="message-container group/message"
       initial={{ y: 5, opacity: 0 }}
-      animate={{ y: 0, opacity: 1, transition: { delay: 1 } }}
+      animate={{ y: 0, opacity: 1, transition: { delay: 0.5 } }}
       data-role={role}
     >
-      <div
-        className={cx(
-          'flex gap-4 group-data-[role=user]/message:px-3 w-full group-data-[role=user]/message:w-fit group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl group-data-[role=user]/message:py-2 rounded-xl',
-          {
-            'group-data-[role=user]/message:bg-muted': true,
-            'bg-message-assistant px-3 py-2': true,
-          },
-        )}
-      >
-        <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border">
-          <SparklesIcon size={14} />
+      <div className="flex gap-4 w-full">
+        <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border bg-background">
+          <div className="translate-y-px">
+            <SparklesIcon size={14} />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-2 w-full">
-          <div className="flex flex-col gap-4 text-message-assistant">
-            Thinking...
+        <div className="flex flex-col gap-4 w-full">
+          <div 
+            className="message-bubble"
+            data-role={role}
+          >
+            <div className="message-content-wrapper text-message-assistant">
+              Thinking...
+            </div>
           </div>
         </div>
       </div>

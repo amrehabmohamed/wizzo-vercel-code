@@ -113,7 +113,7 @@ const NonMemoizedMarkdown = ({ children, isRTL = false }: { children: string, is
     <ReactMarkdown 
       remarkPlugins={remarkPlugins} 
       components={components}
-      className={cn(isRTL ? 'rtl-text' : '')}
+      className={cn('text-message-assistant max-w-none', isRTL ? 'rtl-text' : '')}
     >
       {children}
     </ReactMarkdown>
