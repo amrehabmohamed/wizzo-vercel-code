@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+// Import Excel components and utilities
+import { parseExcelFile } from '@/lib/knowledge/browser/excelParser';
 import { Button } from '@/components/ui/button';
 import { PlusIcon } from '@/components/icons';
 import {
@@ -17,7 +19,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AudioUpload, AudioSummary, AudioMetadata } from '@/components/audio-upload';
 import { toast } from 'sonner';
-import { FileTextIcon, Globe, FileIcon, MicIcon, UploadIcon } from 'lucide-react';
+import { FileTextIcon, Globe, FileIcon, MicIcon, UploadIcon, Table2 } from 'lucide-react';
+import { ExcelFileUploader, ExcelDataPreview, ExcelColumnManager, ExcelPreview } from '@/components/excel';
 
 interface KnowledgeUploadProps {
   onSuccess?: () => void;
@@ -90,7 +93,7 @@ function PDFUpload({ onFileSelected, onCancel, accept = '.pdf', label = 'PDF Fil
 export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'url' | 'text' | 'pdf' | 'audio'>('url');
+  const [activeTab, setActiveTab] = useState<'url' | 'text' | 'pdf' | 'audio' | 'excel'>('url');
   const [audioSubTab, setAudioSubTab] = useState<'upload'>('upload');
   
   // Form state
@@ -99,6 +102,15 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
   const [textContent, setTextContent] = useState('');
   const [url, setUrl] = useState('');
   const [notes, setNotes] = useState('');
+  
+  // Excel states
+  const [excelFile, setExcelFile] = useState<File | null>(null);
+  const [excelData, setExcelData] = useState<any[] | null>(null);
+  const [excelHeaders, setExcelHeaders] = useState<string[]>([]);
+  const [selectedHeaders, setSelectedHeaders] = useState<string[]>([]);
+  const [excelActiveSubTab, setExcelActiveSubTab] = useState<'upload' | 'preview' | 'configure' | 'edit'>('upload');
+  const [excelFormattedContent, setExcelFormattedContent] = useState<string>('');
+  const [isProcessingExcel, setIsProcessingExcel] = useState(false);
   
   // File states
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -129,6 +141,14 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
   };
 
   const resetForm = () => {
+    // Reset Excel states
+    setExcelFile(null);
+    setExcelData(null);
+    setExcelHeaders([]);
+    setSelectedHeaders([]);
+    setExcelActiveSubTab('upload');
+    setExcelFormattedContent('');
+    setIsProcessingExcel(false);
     setUrl('');
     setNotes('');
     setTitle('');
@@ -443,6 +463,101 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
 
   // PDF handling is now integrated into the text tab with client-side extraction
 
+  // Handle Excel submit
+  const handleExcelSubmit = async () => {
+    try {
+      setIsUploading(true);
+      console.log('[KnowledgeUpload] Starting Excel document submission');
+
+      // Validate form
+      if (!title) {
+        console.log('[KnowledgeUpload] Validation failed: Missing title');
+        toast.error('Title is required');
+        setIsUploading(false);
+        return;
+      }
+
+      if (!excelFormattedContent) {
+        console.log('[KnowledgeUpload] Validation failed: Missing content');
+        toast.error('Please configure and edit your Excel data first');
+        setIsUploading(false);
+        return;
+      }
+
+      // Create form data
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('sourceType', 'text');
+      formData.append('content', excelFormattedContent);
+      console.log(`[KnowledgeUpload] Form data prepared: title="${title}", content length=${excelFormattedContent.length}`);
+
+      // Use our knowledge-new endpoint
+      console.log('[KnowledgeUpload] Submitting Excel data to /api/knowledge-new endpoint');
+      console.log('[KnowledgeUpload] Form data contents (Excel document):', {
+        title,
+        description,
+        sourceType: 'text',
+        contentLength: excelFormattedContent.length
+      });
+      
+      // Print out all form data entries to debug
+      for (const [key, value] of formData.entries()) {
+        if (key === 'content') {
+          console.log(`[KnowledgeUpload] FormData entry: ${key} = [${(value as string).length} chars]`);
+        } else {
+          console.log(`[KnowledgeUpload] FormData entry: ${key} = ${value}`);
+        }
+      }
+      const response = await fetch('/api/knowledge-new', {
+        method: 'POST',
+        body: formData,
+      });
+
+      console.log(`[KnowledgeUpload] Response received: status=${response.status}, statusText="${response.statusText}"`);
+      
+      // Parse the response body - do this before checking response.ok to get error details
+      let responseData;
+      try {
+        responseData = await response.json();
+        console.log('[KnowledgeUpload] Response data:', responseData);
+      } catch (parseError) {
+        console.error('[KnowledgeUpload] Failed to parse response as JSON:', parseError);
+      }
+
+      // Handle non-success responses
+      if (!response.ok) {
+        // Construct error message using response data if available
+        let errorMessage = `Request failed with status ${response.status}`;
+        
+        if (responseData?.error) {
+          errorMessage = responseData.message || responseData.error;
+          if (responseData.details) {
+            errorMessage += `: ${responseData.details}`;
+          }
+        }
+        
+        console.error(`[KnowledgeUpload] Error response: ${errorMessage}`);
+        throw new Error(errorMessage);
+      }
+
+      // Process successful response
+      console.log('[KnowledgeUpload] Excel document added successfully:', responseData?.id);
+      toast.success('Excel data added successfully');
+      setIsOpen(false);
+      resetForm();
+      
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (error) {
+      console.error('[KnowledgeUpload] Error adding Excel document:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to add Excel data');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmit = () => {
     switch (activeTab) {
       case 'url':
@@ -453,6 +568,9 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
         break;
       case 'audio':
         handleAudioSubmit();
+        break;
+      case 'excel':
+        handleExcelSubmit();
         break;
       default:
         console.error('Unknown tab selected:', activeTab);
@@ -477,7 +595,7 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
     }}>
       <DialogTrigger asChild>
         <Button>
-          <PlusIcon className="mr-2" size={16} />
+          <span className="mr-2"><PlusIcon size={16} /></span>
           Add Document
         </Button>
       </DialogTrigger>
@@ -509,14 +627,66 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
               <span>Text & Documents</span>
             </Button>
             <Button
-              variant={activeTab === 'audio' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('audio')}
+            variant={activeTab === 'audio' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('audio')}
+            className="flex items-center gap-2"
+            >
+            <MicIcon className="size-4" />
+            <span>Audio</span>
+            </Button>
+            <Button
+              variant={activeTab === 'excel' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('excel')}
               className="flex items-center gap-2"
             >
-              <MicIcon className="size-4" />
-              <span>Audio</span>
+              <Table2 className="size-4" />
+              <span>Excel</span>
             </Button>
           </div>
+          
+          {/* Sub-tabs for Excel */}
+          {activeTab === 'excel' && (
+            <div className="flex space-x-2 mt-2">
+              <Button
+                variant={excelActiveSubTab === 'upload' ? 'secondary' : 'outline'}
+                onClick={() => setExcelActiveSubTab('upload')}
+                size="sm"
+                className="text-sm"
+                disabled={isProcessingExcel}
+              >
+                <UploadIcon className="size-3 mr-1" />
+                Upload
+              </Button>
+              {excelData && (
+                <>
+                  <Button
+                    variant={excelActiveSubTab === 'preview' ? 'secondary' : 'outline'}
+                    onClick={() => setExcelActiveSubTab('preview')}
+                    size="sm"
+                    className="text-sm"
+                  >
+                    Preview
+                  </Button>
+                  <Button
+                    variant={excelActiveSubTab === 'configure' ? 'secondary' : 'outline'}
+                    onClick={() => setExcelActiveSubTab('configure')}
+                    size="sm"
+                    className="text-sm"
+                  >
+                    Configure
+                  </Button>
+                  <Button
+                    variant={excelActiveSubTab === 'edit' ? 'secondary' : 'outline'}
+                    onClick={() => setExcelActiveSubTab('edit')}
+                    size="sm"
+                    className="text-sm"
+                  >
+                    Edit Text
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
           
           {/* Audio Sub-tabs */}
           {activeTab === 'audio' && (
@@ -677,6 +847,75 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
             </div>
           )}
 
+          {/* Excel Upload Content */}
+          {activeTab === 'excel' && excelActiveSubTab === 'upload' && (
+            <div className="space-y-4">
+              <ExcelFileUploader
+                onFileUpload={async (file) => {
+                  try {
+                    setIsProcessingExcel(true);
+                    // Update title if not set
+                    if (!title) {
+                      setTitle(file.name.replace(/\.(xlsx|xls)$/i, ''));
+                    }
+                    
+                    // Parse Excel file
+                    const { data, headers } = await parseExcelFile(file);
+                    setExcelFile(file);
+                    setExcelData(data);
+                    setExcelHeaders(headers);
+                    setSelectedHeaders(headers);
+                    
+                    // Move to preview tab
+                    setExcelActiveSubTab('preview');
+                    toast.success('Excel file processed successfully');
+                  } catch (error) {
+                    console.error('Error processing Excel file:', error);
+                    toast.error('Error processing Excel file');
+                  } finally {
+                    setIsProcessingExcel(false);
+                  }
+                }}
+                isLoading={isProcessingExcel}
+              />
+            </div>
+          )}
+          
+          {/* Excel Preview Content */}
+          {activeTab === 'excel' && excelActiveSubTab === 'preview' && excelData && (
+            <div className="space-y-4">
+              <ExcelDataPreview
+                data={excelData}
+                headers={excelHeaders}
+                selectedHeaders={selectedHeaders}
+              />
+            </div>
+          )}
+          
+          {/* Excel Column Manager */}
+          {activeTab === 'excel' && excelActiveSubTab === 'configure' && excelData && (
+            <div className="space-y-4">
+              <ExcelColumnManager
+                headers={excelHeaders}
+                selectedHeaders={selectedHeaders}
+                onHeaderSelection={(headers) => setSelectedHeaders(headers)}
+                onHeaderReorder={(headers) => setSelectedHeaders(headers)}
+              />
+            </div>
+          )}
+          
+          {/* Excel Edit Content */}
+          {activeTab === 'excel' && excelActiveSubTab === 'edit' && excelData && (
+            <div className="space-y-4">
+              <ExcelPreview
+                data={excelData}
+                selectedHeaders={selectedHeaders}
+                title={title}
+                onContentChange={(content) => setExcelFormattedContent(content)}
+              />
+            </div>
+          )}
+          
           {/* Audio Summary View */}
           {activeTab === 'audio' && audioSummary && audioFile && audioMetadata && (
             <div className="space-y-4">
@@ -709,7 +948,8 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
               disabled={isUploading || 
                 (activeTab === 'url' && !url) || 
                 (activeTab === 'text' && !textContent) ||
-                (activeTab === 'audio' && (!audioFile || !audioSummary))}
+                (activeTab === 'audio' && (!audioFile || !audioSummary)) ||
+                (activeTab === 'excel' && (!excelFormattedContent || excelActiveSubTab !== 'edit'))}
               className="dark:bg-hunter_green-500 dark:text-white dark:hover:bg-hunter_green-400"
             >
               {isUploading ? (
@@ -719,7 +959,8 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
                 </>
               ) : (
                 activeTab === 'url' ? 'Add Link' : 
-                activeTab === 'audio' ? 'Add Audio' : 'Add Document'
+                activeTab === 'audio' ? 'Add Audio' : 
+                activeTab === 'excel' ? 'Add to Knowledge' : 'Add Document'
               )}
             </Button>
           </DialogFooter>

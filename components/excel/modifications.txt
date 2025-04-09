@@ -1,0 +1,224 @@
+# Modifications needed for knowledge-upload.tsx
+
+## 1. Add imports at the top of the file
+import { Table2Icon } from 'lucide-react';
+import { ExcelFileUploader, ExcelPreview } from '@/components/excel';
+import { parseExcelFile } from '@/lib/knowledge/browser/excelParser';
+
+## 2. Update state variables in KnowledgeUpload function
+// Add these Excel-related state variables to the existing state declarations
+const [activeTab, setActiveTab] = useState<'url' | 'text' | 'pdf' | 'audio' | 'excel'>('url');
+// Excel states
+const [excelData, setExcelData] = useState<any[] | null>(null);
+const [excelHeaders, setExcelHeaders] = useState<string[]>([]);
+const [selectedExcelHeaders, setSelectedExcelHeaders] = useState<string[]>([]);
+const [excelFile, setExcelFile] = useState<File | null>(null);
+const [excelTextContent, setExcelTextContent] = useState<string>('');
+const [excelProcessing, setExcelProcessing] = useState<boolean>(false);
+
+## 3. Update resetForm function
+// Add these lines to reset Excel state
+setExcelData(null);
+setExcelHeaders([]);
+setSelectedExcelHeaders([]);
+setExcelFile(null);
+setExcelTextContent('');
+setExcelProcessing(false);
+
+## 4. Add handleExcelFileUpload function
+// Add this function for Excel file handling
+const handleExcelFileUpload = async (file: File) => {
+  try {
+    setExcelProcessing(true);
+    setExcelFile(file);
+    
+    if (!title) {
+      // Auto-set title from filename
+      setTitle(file.name.replace(/\.(xlsx|xls)$/i, ''));
+    }
+    
+    const { data, headers } = await parseExcelFile(file);
+    setExcelData(data);
+    setExcelHeaders(headers);
+    setSelectedExcelHeaders(headers);
+    setExcelProcessing(false);
+  } catch (error) {
+    console.error('[KnowledgeUpload] Error parsing Excel file:', error);
+    toast.error('Failed to parse Excel file. Please check the file format.');
+    setExcelProcessing(false);
+  }
+};
+
+## 5. Add handleExcelSubmit function
+// Add this function for Excel data submission
+const handleExcelSubmit = async () => {
+  try {
+    setIsUploading(true);
+    console.log('[KnowledgeUpload] Starting Excel document submission');
+
+    // Validate form
+    if (!title) {
+      console.log('[KnowledgeUpload] Validation failed: Missing title');
+      toast.error('Title is required');
+      setIsUploading(false);
+      return;
+    }
+
+    if (!excelTextContent) {
+      console.log('[KnowledgeUpload] Validation failed: Missing Excel content');
+      toast.error('No Excel data to submit');
+      setIsUploading(false);
+      return;
+    }
+
+    // Create form data
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('description', description);
+    formData.append('sourceType', 'text');
+    formData.append('content', excelTextContent);
+    console.log(`[KnowledgeUpload] Form data prepared: title="${title}", Excel content length=${excelTextContent.length}`);
+
+    // Use our knowledge-new endpoint
+    console.log('[KnowledgeUpload] Submitting to /api/knowledge-new endpoint');
+    console.log('[KnowledgeUpload] Form data contents (Excel document):', {
+      title,
+      description,
+      sourceType: 'text',
+      contentLength: excelTextContent.length
+    });
+    
+    // Print out all form data entries to debug
+    for (const [key, value] of formData.entries()) {
+      if (key === 'content') {
+        console.log(`[KnowledgeUpload] FormData entry: ${key} = [${(value as string).length} chars]`);
+      } else {
+        console.log(`[KnowledgeUpload] FormData entry: ${key} = ${value}`);
+      }
+    }
+    
+    const response = await fetch('/api/knowledge-new', {
+      method: 'POST',
+      body: formData,
+    });
+
+    console.log(`[KnowledgeUpload] Response received: status=${response.status}, statusText="${response.statusText}"`);
+    
+    // Parse the response body - do this before checking response.ok to get error details
+    let responseData;
+    try {
+      responseData = await response.json();
+      console.log('[KnowledgeUpload] Response data:', responseData);
+    } catch (parseError) {
+      console.error('[KnowledgeUpload] Failed to parse response as JSON:', parseError);
+    }
+
+    // Handle non-success responses
+    if (!response.ok) {
+      // Construct error message using response data if available
+      let errorMessage = `Request failed with status ${response.status}`;
+      
+      if (responseData?.error) {
+        errorMessage = responseData.message || responseData.error;
+        if (responseData.details) {
+          errorMessage += `: ${responseData.details}`;
+        }
+      }
+      
+      console.error(`[KnowledgeUpload] Error response: ${errorMessage}`);
+      throw new Error(errorMessage);
+    }
+
+    // Process successful response
+    console.log('[KnowledgeUpload] Excel document added successfully:', responseData?.id);
+    toast.success('Excel data added successfully');
+    setIsOpen(false);
+    resetForm();
+    
+    if (onSuccess) {
+      onSuccess();
+    }
+  } catch (error) {
+    console.error('[KnowledgeUpload] Error adding Excel document:', error);
+    toast.error(error instanceof Error ? error.message : 'Failed to add Excel data');
+  } finally {
+    setIsUploading(false);
+  }
+};
+
+## 6. Update handleSubmit function
+// Add 'excel' case to the switch statement
+const handleSubmit = () => {
+  switch (activeTab) {
+    case 'url':
+      handleUrlSubmit();
+      break;
+    case 'text':
+      handleTextSubmit();
+      break;
+    case 'audio':
+      handleAudioSubmit();
+      break;
+    case 'excel': // Add this case
+      handleExcelSubmit();
+      break;
+    default:
+      console.error('Unknown tab selected:', activeTab);
+  }
+};
+
+## 7. Add Excel tab button to the Main Tab Navigation section
+// Add this button after the 'Text & Documents' button
+<Button
+  variant={activeTab === 'excel' ? 'default' : 'outline'}
+  onClick={() => setActiveTab('excel')}
+  className="flex items-center gap-2"
+>
+  <Table2Icon className="size-4" />
+  <span>Excel Files</span>
+</Button>
+
+## 8. Add Excel Content section
+// Add this section after the Text Content section
+{/* Excel File Upload and Processing */}
+{activeTab === 'excel' && (
+  <div className="space-y-4">
+    {!excelData ? (
+      <ExcelFileUploader
+        onFileUpload={handleExcelFileUpload}
+        isLoading={excelProcessing}
+      />
+    ) : (
+      <ExcelPreview
+        data={excelData}
+        headers={excelHeaders}
+        selectedHeaders={selectedExcelHeaders}
+        onHeaderSelection={(headers) => setSelectedExcelHeaders(headers)}
+        onHeaderReorder={(headers) => setSelectedExcelHeaders(headers)}
+        onDataEdited={(content) => setExcelTextContent(content)}
+        title={title}
+      />
+    )}
+  </div>
+)}
+
+## 9. Update submission button text
+// Add condition for Excel files to the button text in DialogFooter
+{isUploading ? (
+  <>
+    <div className="animate-spin size-4 mr-2 border-b-2 border-current rounded-full"></div>
+    Processing...
+  </>
+) : (
+  activeTab === 'url' ? 'Add Link' : 
+  activeTab === 'audio' ? 'Add Audio' : 
+  activeTab === 'excel' ? 'Add to Knowledge' : 'Add Document'
+)}
+
+## 10. Update button's disabled condition
+// Update the disabled condition to include Excel
+disabled={isUploading || 
+  (activeTab === 'url' && !url) || 
+  (activeTab === 'text' && !textContent) ||
+  (activeTab === 'audio' && (!audioFile || !audioSummary)) ||
+  (activeTab === 'excel' && (!excelData || selectedExcelHeaders.length === 0))}
