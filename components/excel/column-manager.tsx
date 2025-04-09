@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,9 @@ export function ExcelColumnManager({
   onHeaderReorder 
 }: ColumnManagerProps) {
   const [localSelectedHeaders, setLocalSelectedHeaders] = useState<string[]>(selectedHeaders);
+  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
+  const dragItemRef = useRef<number | null>(null);
+  const dragOverItemRef = useRef<number | null>(null);
 
   const handleHeaderToggle = (header: string) => {
     const updatedHeaders = localSelectedHeaders.includes(header)
@@ -60,10 +63,47 @@ export function ExcelColumnManager({
     setLocalSelectedHeaders([]);
     onHeaderSelection([]);
   };
+  
+  // Drag and drop handlers
+  const handleDragStart = (index: number) => {
+    dragItemRef.current = index;
+    setDraggedItemIndex(index);
+  };
+
+  const handleDragEnter = (index: number) => {
+    dragOverItemRef.current = index;
+  };
+
+  const handleDragEnd = () => {
+    if (dragItemRef.current !== null && dragOverItemRef.current !== null) {
+      const newHeaders = [...localSelectedHeaders];
+      const draggedItem = newHeaders[dragItemRef.current];
+      
+      // Remove the dragged item
+      newHeaders.splice(dragItemRef.current, 1);
+      
+      // Insert at the new position
+      newHeaders.splice(dragOverItemRef.current, 0, draggedItem);
+      
+      // Update state and notify parent
+      setLocalSelectedHeaders(newHeaders);
+      onHeaderReorder(newHeaders);
+    }
+    
+    // Reset refs and state
+    dragItemRef.current = null;
+    dragOverItemRef.current = null;
+    setDraggedItemIndex(null);
+  };
+  
+  // Prevent default behavior for dragOver to enable drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+      <div className="flex justify-between items-center sticky top-0 z-10 bg-white dark:bg-hunter_green-700 pt-2 pb-4">
         <div className="text-lg font-medium dark:text-white">Configure Columns</div>
         <div className="flex space-x-2">
           <Button 
@@ -89,9 +129,17 @@ export function ExcelColumnManager({
         Select which columns to include in the output, rearrange their order, or delete columns.
       </div>
       
-      <div className="grid gap-4 mt-2">
+      <div className="grid gap-4 mt-2 max-h-[400px] overflow-y-auto pr-2">
         {localSelectedHeaders.map((header, index) => (
-          <div key={header} className="flex items-center justify-between p-2 border rounded-md bg-background dark:bg-hunter_green-600 dark:border-hunter_green-500">
+          <div 
+            key={header} 
+            className={`flex items-center justify-between p-2 border rounded-md bg-background dark:bg-hunter_green-600 dark:border-hunter_green-500 ${draggedItemIndex === index ? 'opacity-50 border-dashed' : ''}`}
+            draggable
+            onDragStart={() => handleDragStart(index)}
+            onDragEnter={() => handleDragEnter(index)}
+            onDragEnd={handleDragEnd}
+            onDragOver={handleDragOver}
+          >
             <div className="flex items-center space-x-3">
               <GripVertical className="h-5 w-5 text-muted-foreground cursor-move dark:text-gray-300" />
               <div className="flex items-center space-x-2">

@@ -599,7 +599,7 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
           Add Document
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] dark:bg-hunter_green-700 dark:text-white">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-hidden flex flex-col dark:bg-hunter_green-700 dark:text-white">
         <DialogHeader>
           <DialogTitle>Add Knowledge Document</DialogTitle>
           <DialogDescription className="dark:text-gray-300">
@@ -705,7 +705,7 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
           
           <div className="space-y-4 mb-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right dark:text-white">
+              <Label htmlFor="title" className="text-left dark:text-white">
                 Title
               </Label>
               <Input
@@ -717,7 +717,7 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right dark:text-white">
+              <Label htmlFor="description" className="text-left dark:text-white">
                 Description
               </Label>
               <Input
@@ -734,7 +734,7 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
           {activeTab === 'url' && (
             <div className="space-y-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="url" className="text-right dark:text-white">
+                <Label htmlFor="url" className="text-left dark:text-white">
                   URL
                 </Label>
                 <Input
@@ -747,7 +747,7 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
                 />
               </div>
               <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="notes" className="text-right pt-2 dark:text-white">
+                <Label htmlFor="notes" className="text-left pt-2 dark:text-white">
                   Notes
                 </Label>
                 <Textarea
@@ -766,7 +766,7 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
           {activeTab === 'text' && (
             <div className="space-y-4">
               <div className="grid grid-cols-4 items-start gap-4">                  
-                <Label htmlFor="textContent" className="text-right pt-2 dark:text-white">
+                <Label htmlFor="textContent" className="text-left pt-2 dark:text-white">
                   Content
                 </Label>
                 <div className="col-span-3 space-y-2">
@@ -883,7 +883,7 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
           
           {/* Excel Preview Content */}
           {activeTab === 'excel' && excelActiveSubTab === 'preview' && excelData && (
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-auto flex-grow" style={{ maxHeight: 'calc(90vh - 300px)' }}>
               <ExcelDataPreview
                 data={excelData}
                 headers={excelHeaders}
@@ -894,7 +894,7 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
           
           {/* Excel Column Manager */}
           {activeTab === 'excel' && excelActiveSubTab === 'configure' && excelData && (
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-auto flex-grow" style={{ maxHeight: 'calc(90vh - 300px)' }}>
               <ExcelColumnManager
                 headers={excelHeaders}
                 selectedHeaders={selectedHeaders}
@@ -906,7 +906,7 @@ export function KnowledgeUpload({ onSuccess }: KnowledgeUploadProps) {
           
           {/* Excel Edit Content */}
           {activeTab === 'excel' && excelActiveSubTab === 'edit' && excelData && (
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-auto flex-grow" style={{ maxHeight: 'calc(90vh - 300px)' }}>
               <ExcelPreview
                 data={excelData}
                 selectedHeaders={selectedHeaders}

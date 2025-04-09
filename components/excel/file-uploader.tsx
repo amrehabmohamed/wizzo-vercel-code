@@ -54,6 +54,8 @@ export function ExcelFileUploader({ onFileUpload, isLoading }: FileUploaderProps
       file.name.endsWith('.xls')
     ) {
       setSelectedFile(file);
+      // Automatically process the file when selected
+      onFileUpload(file);
     } else {
       toast.error('Please upload an Excel file (.xlsx or .xls)');
     }
@@ -120,13 +122,9 @@ export function ExcelFileUploader({ onFileUpload, isLoading }: FileUploaderProps
                 ({(selectedFile.size / 1024).toFixed(2)} KB)
               </span>
             </div>
-            <Button 
-              onClick={handleUpload} 
-              disabled={isLoading}
-              className="dark:bg-hunter_green-500 dark:text-white dark:border-hunter_green-400 dark:hover:bg-hunter_green-400"
-            >
-              {isLoading ? "Processing..." : "Process File"}
-            </Button>
+            <div className="text-sm text-muted-foreground dark:text-gray-300">
+              {isLoading ? "Processing..." : "Processing file..."}
+            </div>
           </div>
         </div>
       )}

@@ -28,8 +28,8 @@ export function ExcelDataPreview({ data, headers, selectedHeaders }: DataPreview
   const paginatedData = filteredData.slice(startIndex, startIndex + rowsPerPage);
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+      <div className="flex justify-between items-center sticky top-0 z-10 bg-white dark:bg-hunter_green-700 pt-2 pb-4">
         <div className="text-lg font-medium dark:text-white">Data Preview</div>
         <div className="flex w-full max-w-sm items-center space-x-2">
           <Input
@@ -51,9 +51,9 @@ export function ExcelDataPreview({ data, headers, selectedHeaders }: DataPreview
         The first row has been identified as column headers. Preview your data and configure columns below.
       </div>
       
-      <div className="rounded-md border overflow-auto max-h-[350px] dark:border-hunter_green-500">
+      <div className="rounded-md border overflow-auto max-h-[300px] dark:border-hunter_green-500 my-4 mx-0" style={{ overflowX: 'auto', overflowY: 'auto' }}>
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10">
             <TableRow className="dark:bg-hunter_green-800 dark:hover:bg-hunter_green-700">
               {selectedHeaders.map((header) => (
                 <TableHead key={header} className="whitespace-nowrap dark:text-white">
