@@ -226,17 +226,19 @@ export async function POST(request: Request) {
                       if (resolveReferences) resolveReferences(0);
                       return;
                     }
+                    
                     // Create knowledge references for the assistant message
-                    if (usedKnowledgeChunks.length > 0 && savedAssistantMessage) {
+                    // Only create references if there are valid chunks with database IDs
+                    if (usedKnowledgeChunks.length > 0 && usedKnowledgeChunks.some(chunk => chunk.id && chunk.documentId !== 'auto-generated') && savedAssistantMessage) {
                         
                       console.log(`Creating ${usedKnowledgeChunks.length} knowledge references for message ${savedAssistantMessage.id}`);
                         try {
                           // Start a database transaction to ensure atomicity
                           console.log('Beginning transaction for reference creation');
                           
-                          // Create an array of reference objects to insert
+                          // Filter out invalid chunks that might cause foreign key constraint errors
                           const referenceObjects = usedKnowledgeChunks
-                            .filter(chunk => chunk.id) // Ensure chunk has ID
+                            .filter(chunk => chunk.id && chunk.documentId !== 'auto-generated') // Only use valid database chunks
                             .map(chunk => ({
                               messageId: savedAssistantMessage.id,
                               chunkId: chunk.id,
@@ -246,6 +248,7 @@ export async function POST(request: Request) {
                           if (referenceObjects.length > 0) {
                             // Use bulk insert to create all references at once
                             console.log(`Attempting to create ${referenceObjects.length} references in bulk`);
+                            console.log('Creating ' + referenceObjects.length + ' knowledge references in bulk');
                             
                             // Execute our improved createReferences function
                             const insertedCount = await createBulkKnowledgeReferences(referenceObjects);
@@ -259,10 +262,22 @@ export async function POST(request: Request) {
                             }
                           } else {
                             console.log('No valid knowledge chunks to reference');
+                            
+                            // Resolve with 0 if no references are needed
+                            referencesCompleted = true;
+                            if (resolveReferences) {
+                              resolveReferences(0);
+                            }
                           }
                         } catch (referenceError) {
                           console.error('Error creating knowledge references:', 
                             referenceError instanceof Error ? referenceError.message : String(referenceError));
+                            
+                          // Even on error, we should resolve to unblock the stream
+                          referencesCompleted = true;
+                          if (resolveReferences) {
+                            resolveReferences(0);
+                          }
                         }
                       } else {
                         console.log('No knowledge chunks used or no assistant message found, skipping reference creation');
@@ -276,6 +291,12 @@ export async function POST(request: Request) {
                   } catch (error) {
                     console.error('Failed to save chat or create references:', 
                       error instanceof Error ? error.message : String(error));
+                    
+                    // Even on error, we should resolve to unblock the stream
+                    referencesCompleted = true;
+                    if (resolveReferences) {
+                      resolveReferences(0);
+                    }
                   }
                 }
               },
@@ -300,17 +321,17 @@ export async function POST(request: Request) {
             // Wait for references to be created before finalizing response
             // This gives frontend a better chance of finding references on first try
             try {
-              // Wait a small amount of time for references to be created
-              // so the frontend has a better chance of finding them on the first try
+              // Wait for references to be created before completing the stream
+              // Increase timeout to ensure references are properly created
               if (!referencesCompleted && referencesCreated) {
                 console.log('Waiting for references to be created before completing stream...');
                 const referenceCount = await Promise.race([
                   referencesCreated,
-                  // Timeout after 3 seconds to prevent hanging
+                  // Increased timeout from 3 to 8 seconds to ensure references are created
                   new Promise<number>((resolve) => setTimeout(() => {
-                    console.log('Reference creation wait timed out after 3 seconds');
+                    console.log('Reference creation wait timed out after 8 seconds');
                     resolve(0);
-                  }, 3000))
+                  }, 8000))
                 ]);
                 
                 console.log(`Waited for ${referenceCount} references to be created before completing stream`);

@@ -69,15 +69,13 @@ export function searchKnowledgeToolAdapter({
         title: result.title || 'Untitled Document',
       }));
       
-      // Create dummy chunks if actual chunks aren't found
+      // Create static reference when no chunks are found
       if (usedChunks.length === 0 && query) {
-        console.log('[SEARCH TOOL] No real chunks found, creating dummy chunk to ensure references work');
-        usedChunks = [{
-          id: generateUUID(),  // Generate a random ID
-          title: 'Query Response',
-          content: `This content was created in response to the query: "${query}"`,
-          documentId: 'auto-generated'
-        }];
+        console.log('[SEARCH TOOL] No real chunks found, creating static reference');
+        // Static content to avoid foreign key constraint issues
+        usedChunks = [];
+        
+        console.log('[SEARCH TOOL] Using empty chunks array to avoid foreign key constraint errors');
       }
       
       console.log(`[SEARCH TOOL] Found and tracking ${usedChunks.length} chunks for reference creation`);

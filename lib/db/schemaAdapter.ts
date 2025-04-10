@@ -78,6 +78,13 @@ export function preprocessQuery(query: string): string {
     if (hasArabic) {
       // For Arabic, extract key terms specific to Arabic structure
       
+      // Check for exact phrases first (higher priority)
+      const exactPhraseMatch = normalizedQuery.match(/"([^"]+)"/g);
+      if (exactPhraseMatch && exactPhraseMatch.length > 0) {
+        // If user has quoted a specific phrase, prioritize that exact text
+        return exactPhraseMatch[0].replace(/"/g, '');
+      }
+      
       // Common Arabic patterns for "my role at company"
       // For example: "دوري في شركة" or "منصبي في"
       const arabicRoleMatches = normalizedQuery.match(/(?:دور|منصب|وظيفة|عمل)[^\s]*(?:\s+في|\s+ب|\s+مع|\s+ل)\s+([\u0600-\u06FF\s]{2,})/i);
@@ -103,11 +110,30 @@ export function preprocessQuery(query: string): string {
         return arabicSkillMatches[1].trim();
       }
       
+      // Extract keywords from longer Arabic queries by splitting on common stopwords
+      const arabicWords = normalizedQuery.split(/\s+/);
+      const filteredWords = arabicWords.filter(word => 
+        word.length > 2 && // Skip very short words
+        !/(في|من|على|الى|ان|هل|لكن|ثم|او|و|ف|ب|ل)/.test(word) // Skip Arabic stopwords
+      );
+      
+      if (filteredWords.length > 0) {
+        return filteredWords.join(' ');
+      }
+      
       // Default to the normalized Arabic query
       return normalizedQuery;
     } else {
       // English processing
       // Extract key terms for resume/CV specific queries
+      
+      // Check for exact phrases first (higher priority)
+      const exactPhraseMatch = normalizedQuery.match(/"([^"]+)"/g);
+      if (exactPhraseMatch && exactPhraseMatch.length > 0) {
+        // If user has quoted a specific phrase, prioritize that exact text
+        return exactPhraseMatch[0].replace(/"/g, '');
+      }
+      
       const roleMatches = normalizedQuery.match(/\b(role|position|title|job|work)\s+(at|in|with|for)\s+([\w\s&]+)\b/i);
       if (roleMatches && roleMatches[3]) {
         const company = roleMatches[3].trim();
@@ -127,6 +153,17 @@ export function preprocessQuery(query: string): string {
       const skillMatches = normalizedQuery.match(/\b(skill|experience|expertise|knowledge)\s+(in|with|of)\s+([\w\s&]+)\b/i);
       if (skillMatches && skillMatches[3]) {
         return skillMatches[3].trim();
+      }
+      
+      // Extract keywords from longer queries by splitting on common stopwords
+      const englishWords = normalizedQuery.split(/\s+/);
+      const filteredWords = englishWords.filter(word => 
+        word.length > 2 && // Skip very short words
+        !/(in|at|the|and|or|but|if|of|on|by|for|with|about|to|from)/.test(word.toLowerCase()) // Skip English stopwords
+      );
+      
+      if (filteredWords.length > 0) {
+        return filteredWords.join(' ');
       }
       
       // Default to the normalized query for other types
