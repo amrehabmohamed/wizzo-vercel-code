@@ -128,15 +128,34 @@ export async function POST(request: Request) {
                   content: enhancedKnowledgeSystemPrompt + knowledgeResults.relevantContent
                 };
               
-              // Find optimal position to insert - just before the user message
-              const userMsgIndex = enhancedMessages.findIndex(msg => msg.id === userMessage.id);
-              
-              if (userMsgIndex > 0) {
-                // Insert at specific position without creating a full copy of the array
-                enhancedMessages.splice(userMsgIndex, 0, knowledgeSystemMsg);
+              // Special handling for Claude models - they don't support multiple system messages
+              if (selectedChatModel === 'claude-haiku' || selectedChatModel === 'claude-sonnet') {
+                // For Claude, use a user message instead of a system message
+                const knowledgeUserMsg = {
+                  id: generateUUID(),
+                  role: 'user' as 'system' | 'user' | 'assistant' | 'data',
+                  content: `I'm providing you with relevant information from my knowledge base to help answer my question:\n\n${knowledgeResults.relevantContent}\n\nPlease use this information to help answer my original question.`
+                };
+                
+                // Find the most recent user message
+                const lastUserMsgIndex = enhancedMessages.findIndex(msg => msg.id === userMessage.id);
+                
+                if (lastUserMsgIndex >= 0) {
+                  // Insert knowledge as a separate user message before the actual question
+                  enhancedMessages.splice(lastUserMsgIndex, 0, knowledgeUserMsg);
+                }
               } else {
-                // If we can't find the user message or it's at position 0, insert at beginning
-                enhancedMessages.unshift(knowledgeSystemMsg);
+                // For non-Claude models, use system message as before
+                // Find optimal position to insert - just before the user message
+                const userMsgIndex = enhancedMessages.findIndex(msg => msg.id === userMessage.id);
+                
+                if (userMsgIndex > 0) {
+                  // Insert at specific position without creating a full copy of the array
+                  enhancedMessages.splice(userMsgIndex, 0, knowledgeSystemMsg);
+                } else {
+                  // If we can't find the user message or it's at position 0, insert at beginning
+                  enhancedMessages.unshift(knowledgeSystemMsg);
+                }
               }
               
               console.log(`Added knowledge context to messages with ${knowledgeResults?.count ?? 0} chunks`);
@@ -149,9 +168,10 @@ export async function POST(request: Request) {
               system: systemPrompt({ selectedChatModel }),
               messages: enhancedMessages,
               maxSteps: 5,
-              temperature: 0.3,
+              temperature: selectedChatModel.startsWith('claude') ? 0.5 : 0.3, // Higher temperature for Claude models
               experimental_transform: smoothStream({ chunking: 'word' }),
               experimental_generateMessageId: generateUUID,
+              cache: selectedChatModel.startsWith('claude'), // Enable caching for Claude models
               onFinish: async ({ response, reasoning }) => {
                 if (session.user?.id) {
                   try {

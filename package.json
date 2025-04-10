@@ -28,6 +28,7 @@
     "fix:vector-search": "npx tsx scripts/fix-vector-search.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^1.2.1",
     "@ai-sdk/openai": "1.1.9",
     "@codemirror/lang-javascript": "^6.2.2",
     "@codemirror/lang-python": "^6.1.6",
